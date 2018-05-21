@@ -42,6 +42,11 @@ The script will then use a series of show commands and regexes against the outpu
 
 -Handling for when the target IP *is* a Cisco CDP neighbor; currently the script will end with a `NoneType` error
 
--Add support for Cisco Nexus switches with port-channels (just need to work out the command syntax difference
+-Add support for Cisco Nexus switches with port-channels (just need to work out the command syntax difference)
 
 -LLDP support
+
+-Detection of possible unmanaged/non-CDP switch on edge port (basically determine if multiple MAC addresses are learned); this would just be an added FYI to help track down a device
+
+
+#####I appreciate any and all feedback.
