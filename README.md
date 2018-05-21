@@ -1,6 +1,6 @@
 ## Cisco IP Trace
 
-This is a basic Python script takes an IP address and traces its MAC address from a core device to an esge port. It will then output the IP, MAC address, edge switch name, and port name on the console.
+This is a basic Python script takes an IP address and traces its MAC address from a core device to the its port. It will then output the IP, MAC address, edge switch name, and port name on the console.
 
 ### Usage
 
