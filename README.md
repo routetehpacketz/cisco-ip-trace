@@ -18,6 +18,8 @@ Username:
 Password:
 ```
 
+3. Press Enter
+
 The script will then use a series of show commands and regexes against the outputs to identify the port the associated MAC address is learned on, determine if there is another Cisco switch connected via CDP, and continues the trace until it reaches a port where no switch is detected. It will then print its findings like this:
 
 `10.1.10.10,000.abcd.ef12,SwitchA,Gi1/0/1`
