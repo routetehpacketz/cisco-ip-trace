@@ -40,6 +40,8 @@ The script will then use a series of show commands and regexes against the outpu
 
 ### Known issues/to-do
 
+-Option to choose between scanning a single IP or a range
+
 -Handling for when the target IP *is* a Cisco CDP neighbor; currently the script will end with a `NoneType` error
 
 -Add support for Cisco Nexus switches with port-channels (just need to work out the command syntax difference)
