@@ -26,7 +26,7 @@ The script will then use a series of show commands and regexes against the outpu
 
 ### Requirements
 
--Python3.x (I haven't tested this in Python2.x, so it may work without any syntax adjustments)
+-Python3.x (~~I haven't tested this in Python2.x, so it may work without any syntax adjustments~~ -Python2.x does not support the use of `nonlocal` so Python3 **is** required)
 
 -Python module 'paramiko'
 
