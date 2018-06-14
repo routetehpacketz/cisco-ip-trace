@@ -1,6 +1,6 @@
 ## Cisco IP Trace
 
-This is a basic Python script takes an IP address and traces its MAC address from a core device to the its port. It will then output the IP, MAC address, edge switch name, and port name on the console.
+This is a basic Python script that takes an IP address and traces its MAC address from a core device to its edge port. It will then output the IP, MAC address, edge switch name, and port name on the console.
 
 ### Usage
 
@@ -20,7 +20,7 @@ Password:
 
 3. Press Enter
 
-The script will then use a series of show commands and regexes against the outputs to identify the port the associated MAC address is learned on, determine if there is another Cisco switch connected via CDP, and continues the trace until it reaches a port where no switch is detected. It will then print its findings like this:
+The script will then use a series of show commands and regexes against the show command outputs to identify the port the associated MAC address is learned on, determine if there is another Cisco switch connected via CDP, and continues the trace until it reaches a port where no switch is detected. It will then print its findings like this:
 
 `10.1.10.10,000.abcd.ef12,SwitchA,Gi1/0/1`
 
