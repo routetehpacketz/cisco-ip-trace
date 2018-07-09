@@ -42,13 +42,17 @@ The script will then use a series of show commands and regexes against the show 
 
 -Option to choose between scanning a single IP or a range
 
--~~Handling for when the target IP *is* a Cisco CDP neighbor; currently the script will end with a `NoneType` error~~ -Added 07/09/2018
+-~~Handling for when the target IP *is* a Cisco CDP neighbor; currently the script will end with a `NoneType` error~~ -Added 07/09/2018; You will now see a note with the output informing you that the IP provided *is* a CDP neighbor.
+
+![](https://i.imgur.com/60UzltA.png)
 
 -Add support for Cisco Nexus switches with port-channels (just need to work out the command syntax difference)
 
 -LLDP support
 
--~~Detection of possible unmanaged/non-CDP switch on edge port (basically determine if multiple MAC addresses are learned); this would just be an added FYI to help track down a device~~ -Added 07/09/2018
+-~~Detection of possible unmanaged/non-CDP switch on edge port (basically determine if multiple MAC addresses are learned); this would just be an added FYI to help track down a device~~ -Added 07/09/2018; You will now see a note with the output informing you that multiple MAC addresses are learned on the final port in the trace. This is a suggestion that an unmanaged switch may be present and is just added info to aid in tracking down a device.
+
+![](https://i.imgur.com/o9PjpOE.png)
 
 
 ##### I appreciate any and all feedback.
