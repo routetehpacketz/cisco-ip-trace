@@ -67,11 +67,11 @@ def core(core_router,current_ip):
 		match_mac=re.search(mac_regex,show_ip_arp)
 		#end script if no MAC address found for given IP
 		if not match_mac:
+			core_router_ssh.close()
 			print ("\nNo MAC for "+current_ip)
 			cdp_nei_ip='1'
 			match_mac='1'
 			return (cdp_nei_ip,match_mac)
-			#core_router_conn.close()
 			break
 		else:
 			match_mac=match_mac.group()
@@ -105,6 +105,7 @@ def core(core_router,current_ip):
 				mac_port_macs=core_router_conn.recv(1000)
 				mac_port_macs=mac_port_macs.decode(encoding='utf-8')
 				multi_macs=re.findall(mac_regex,mac_port_macs)
+				core_router_ssh.close()
 				#if more than one MAC is found on port, alert possible unmanaged switch
 				if len(multi_macs) > 1:
 					print ("\nNote: More than one MAC found on this port, possible unmanaged switch present.\n\n"+current_ip+','+match_mac+','+core_router_hostname+','+mac_port)
@@ -119,6 +120,7 @@ def core(core_router,current_ip):
 					return(cdp_nei_ip,match_mac)
 					break
 			else:
+				core_router_ssh.close()
 				cdp_nei_ip=cdp_nei_ip.group()
 				#if CDP neighbor is found, see if IP provided is the CDP neighbor and alert
 				if current_ip==cdp_nei_ip:
@@ -129,9 +131,8 @@ def core(core_router,current_ip):
 					break
 				else:
 				#if IP provided is not a CDP neighbor, return variables for use in check_cdp_nei function
-					#core_router_conn.close()
 					return (cdp_nei_ip,match_mac)
-					#break
+					break
 
 def check_cdp_nei(cdp_nei_ip,match_mac,current_ip):
 	while True:		
@@ -168,6 +169,7 @@ def check_cdp_nei(cdp_nei_ip,match_mac,current_ip):
 			time.sleep(.5)
 			mac_port_macs=next_switch_conn.recv(1000)
 			mac_port_macs=mac_port_macs.decode(encoding='utf-8')
+			next_switch_ssh.close()
 			multi_macs=re.findall(mac_regex,mac_port_macs)
 			#if more than one MAC is found on port, alert possible unmanaged switch
 			if len(multi_macs) > 1:
@@ -183,6 +185,7 @@ def check_cdp_nei(cdp_nei_ip,match_mac,current_ip):
 				return(cdp_nei_ip,no_cdp_nei_ip)
 				break
 		else:
+			next_switch_ssh.close()
 			cdp_nei_ip=cdp_nei_ip.group()
 			#if CDP neighbor is found, see if IP provided is the CDP neighbor and alert
 			if current_ip==cdp_nei_ip:
@@ -191,8 +194,8 @@ def check_cdp_nei(cdp_nei_ip,match_mac,current_ip):
 				no_cdp_nei_ip='1'
 				return(cdp_nei_ip,no_cdp_nei_ip)
 				break
-		no_cdp_nei_ip='2'
-		return(cdp_nei_ip,no_cdp_nei_ip)
+			no_cdp_nei_ip='2'
+			return(cdp_nei_ip,no_cdp_nei_ip)
 
 def singleip_scan():
 	no_cdp_nei_ip='2'
