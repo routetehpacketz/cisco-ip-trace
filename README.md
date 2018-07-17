@@ -1,58 +1,93 @@
 ## Cisco IP Trace
 
-This is a basic Python script that takes an IP address and traces its MAC address from a core device to its edge port. It will then output the IP, MAC address, edge switch name, and port name on the console.
+This Python script will take a single IP address or a range within a /24 and trace the associated MAC address(es) from a core Cisco router/switch to the edge switch port. It will output the provided IP address, MAC address, edge switch name, and port name on the console.
+
+Please note that this script is only designed to run on Cisco IOS and NX-OS devices.
 
 ### Usage
 
 1. Open a command prompt/terminal and run cisco_ip_trace.py 
 
-2. Fill out the following prompts:
+2. Choose between scanning a single IP address or a range.
 
 ```
-Enter the IP address of the core router/switch that can ARP for the IP address to scan:
+Do you want to scan a single IP or a range?
 
-Enter IP address to trace:
+1. Single IP
 
-Username:
+2. Range (must be contiguous; no greater than /24)
 
-Password:
+Please input 1 or 2:
 ```
 
-3. Press Enter
+Single IP:
+
+```
+Enter IP address to trace: 10.1.10.184
+Enter the IP address of the core router/switch that can ARP for the IP address to trace: 10.1.1.1
+Username: admin
+Password: ********
+```
+
+Range of IPs:
+
+```
+Enter first three octets of subnet you'd like to scan (ex. 10.1.1.): 10.1.10
+Enter last octet of first IP in the range to scan: 184
+Enter the last octet of the last IP in the range to scan: 187
+Enter the IP address of the core router/switch that can ARP for the IP address to trace: 10.1.1.1
+Username: admin
+Password: *********
+```
 
 The script will then use a series of show commands and regexes against the show command outputs to identify the port the associated MAC address is learned on, determine if there is another Cisco switch connected via CDP, and continues the trace until it reaches a port where no switch is detected. It will then print its findings like this:
 
-`10.1.10.10,000.abcd.ef12,SwitchA,Gi1/0/1`
+`10.1.10.185,0123.4567.6d36,SwitchB,Gi1/0/2`
+
+The script will alert you if multiple MAC addresses are currently found on the edge port. This is just extra info in case it helps narrow down a device:
+
+```
+Note: More than one MAC found on this port, possible unmanaged switch present.
+
+10.1.10.184,abcd.4567.2fc2,SwitchA,Gi2/0/30
+```
+
+The script will also alert you if the provided IP *is a CDP neighbor*. Currently this will not provide you port information past the core router/switch:
+
+```
+Note: The IP provided is a CDP neighbor.
+
+10.1.1.10,0124.abcd.1234,CoreA,Gi4/1
+```
 
 ### Requirements
 
--Python3.x (~~I haven't tested this in Python2.x, so it may work without any syntax adjustments~~ -Python2.x does not support the use of `nonlocal` so Python3 **is** required)
+-Python3.x
 
 -Python module 'paramiko'
 
--SSH access to your Cisco devices (telnet is not supported)
+-SSH access to all Cisco devices from the computer running the script; Telnet is **not supported**
 
--Cisco Discovery Protocol (CDP) enabled on all Cisco switches 
+-Cisco Discovery Protocol (CDP) enabled on all Cisco switches
 
--The credentials provided must work on *all* devices
+-The credentials provided must work on **all** devices discovered via CDP
 
 -The "core" device that will be ARPing for the IP in question must have layer 2 connectivity to the LAN on which the target device is connected or the CDP neighbor discovery process will fail
 
 ### Known issues/to-do
 
--Option to choose between scanning a single IP or a range
+-Enhanced input validation
 
--~~Handling for when the target IP *is* a Cisco CDP neighbor; currently the script will end with a `NoneType` error~~ -Added 07/09/2018; You will now see a note with the output informing you that the IP provided *is* a CDP neighbor.
+-Range scanning for subnet greater than /24
 
-![](https://i.imgur.com/60UzltA.png)
+-Add prompt for new creds if supplied creds fail on a discovered neighbor
+
+-Fix issue when provided IP is a CDP neighbor and trace doesn't report past core
 
 -Add support for Cisco Nexus switches with port-channels (just need to work out the command syntax difference)
 
 -LLDP support
 
--~~Detection of possible unmanaged/non-CDP switch on edge port (basically determine if multiple MAC addresses are learned); this would just be an added FYI to help track down a device~~ -Added 07/09/2018; You will now see a note with the output informing you that multiple MAC addresses are learned on the final port in the trace. This is a suggestion that an unmanaged switch may be present and is just added info to aid in tracking down a device.
-
-![](https://i.imgur.com/o9PjpOE.png)
-
+-Option to output range scan to a CSV file
 
 ##### I appreciate any and all feedback.
