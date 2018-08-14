@@ -7,7 +7,7 @@ import getpass
 ip_regex=re.compile(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')
 subnet_regex=re.compile(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.')
 mac_regex=re.compile(r'[0-9a-f]{4}\.[0-9a-f]{4}\.[0-9a-f]{4}')
-int_regex=re.compile(r'Fa{1}\d/\S*\d{1,2}|Gi{1}\d/\S*\d{1,2}|Eth{1}\d/\S*\d{1,2}')
+int_regex=re.compile(r'Fa{1}\S*\d/\S*\d{1,2}|Gi{1}\S*\d/\S*\d|Eth{1}\d/\S*\d{1,2}')
 int_po_regex=re.compile(r'Po{1}\d*')
 int_regexes=[int_regex,int_po_regex]
 
@@ -68,19 +68,47 @@ def core(core_router,current_ip):
 		#end script if no MAC address found for given IP
 		if not match_mac:
 			core_router_ssh.close()
-			print ("\nNo MAC for "+current_ip)
+			print ("\nNo MAC for "+current_ip+"\n")
 			cdp_nei_ip='1'
 			match_mac='1'
 			return (cdp_nei_ip,match_mac)
 			break
 		else:
 			match_mac=match_mac.group()
+			routed_port=re.search(int_regex,show_ip_arp)
+			if routed_port:
+				routed_port=routed_port.group()
+				core_router_conn.send("show cdp nei "+routed_port+" det | inc IP\n")
+				time.sleep(.5)
+				show_cdp_nei=core_router_conn.recv(1000)
+				show_cdp_nei=show_cdp_nei.decode(encoding='utf-8')
+				cdp_nei_ip=re.search(ip_regex,show_cdp_nei)
+				if not cdp_nei_ip:
+					print ("\n"+current_ip+" is directly connected to the core router\n")
+					cdp_nei_ip='1'
+					match_mac='1'
+					return (cdp_nei_ip,match_mac)
+					break
+				else:
+					core_router_ssh.close()
+					cdp_nei_ip=cdp_nei_ip.group()
+					#if CDP neighbor is found, see if IP provided is the CDP neighbor and alert
+					if current_ip==cdp_nei_ip:
+						print("\nNote: The IP provided is a CDP neighbor.\n\n"+current_ip+','+match_mac+','+core_router_hostname+','+mac_port+"\n")
+						match_mac='1'
+						cdp_nei_ip='1'
+						return(cdp_nei_ip,match_mac)
+						break
+					else:
+					#if IP provided is not a CDP neighbor, return variables for use in check_cdp_nei function
+						return (cdp_nei_ip,match_mac)
+						break
+					
 			#obtain interface name that MAC was learned on from core device
 			core_router_conn.send("show mac add add "+match_mac+" | inc "+match_mac+"\n")
 			time.sleep(.5)
 			show_mac_table=core_router_conn.recv(1000)
-			show_mac_table=show_mac_table.decode(encoding='utf-8')
-			#show_mac_table.replace('\\r\\n','\\n')
+			show_mac_table=show_mac_table.decode(encoding='utf-8')			
 			#search for non-etherchannel interface name
 			mac_port=re.search(int_regexes[0],show_mac_table)
 			#if interface is an etherchannel, obtain member ports
@@ -108,13 +136,13 @@ def core(core_router,current_ip):
 				core_router_ssh.close()
 				#if more than one MAC is found on port, alert possible unmanaged switch
 				if len(multi_macs) > 1:
-					print ("\nNote: More than one MAC found on this port, possible unmanaged switch present.\n\n"+current_ip+','+match_mac+','+core_router_hostname+','+mac_port)
+					print ("\nNote: More than one MAC found on this port, possible unmanaged switch present.\n\n"+current_ip+','+match_mac+','+core_router_hostname+','+mac_port+"\n")
 					match_mac='1'
 					cdp_nei_ip='1'
 					return(cdp_nei_ip,match_mac)
 					break
 				else:
-					print ("\n"+current_ip+','+match_mac+','+core_router_hostname+','+mac_port)
+					print ("\n"+current_ip+','+match_mac+','+core_router_hostname+','+mac_port+"\n")
 					match_mac='1'
 					cdp_nei_ip='1'
 					return(cdp_nei_ip,match_mac)
@@ -124,7 +152,7 @@ def core(core_router,current_ip):
 				cdp_nei_ip=cdp_nei_ip.group()
 				#if CDP neighbor is found, see if IP provided is the CDP neighbor and alert
 				if current_ip==cdp_nei_ip:
-					print("\nNote: The IP provided is a CDP neighbor.\n\n"+current_ip+','+match_mac+','+core_router_hostname+','+mac_port)
+					print("\nNote: The IP provided is a CDP neighbor.\n\n"+current_ip+','+match_mac+','+core_router_hostname+','+mac_port+"\n")
 					match_mac='1'
 					cdp_nei_ip='1'
 					return(cdp_nei_ip,match_mac)
@@ -173,13 +201,13 @@ def check_cdp_nei(cdp_nei_ip,match_mac,current_ip):
 			multi_macs=re.findall(mac_regex,mac_port_macs)
 			#if more than one MAC is found on port, alert possible unmanaged switch
 			if len(multi_macs) > 1:
-				print ("\nNote: More than one MAC found on this port, possible unmanaged switch present.\n\n"+current_ip+','+match_mac+','+next_switch_hostname+','+mac_port)
+				print ("\nNote: More than one MAC found on this port, possible unmanaged switch present.\n\n"+current_ip+','+match_mac+','+next_switch_hostname+','+mac_port+"\n")
 				cdp_nei_ip='1'
 				no_cdp_nei_ip='1'
 				return(cdp_nei_ip,no_cdp_nei_ip)
 				break
 			else:
-				print ("\n"+current_ip+','+match_mac+','+next_switch_hostname+','+mac_port)
+				print ("\n"+current_ip+','+match_mac+','+next_switch_hostname+','+mac_port+"\n")
 				cdp_nei_ip='1'
 				no_cdp_nei_ip='1'
 				return(cdp_nei_ip,no_cdp_nei_ip)
@@ -189,7 +217,7 @@ def check_cdp_nei(cdp_nei_ip,match_mac,current_ip):
 			cdp_nei_ip=cdp_nei_ip.group()
 			#if CDP neighbor is found, see if IP provided is the CDP neighbor and alert
 			if current_ip==cdp_nei_ip:
-				print("\nNote: The IP provided is a CDP neighbor.\n\n"+current_ip+','+match_mac+','+next_switch_hostname+','+mac_port)
+				print("\nNote: The IP provided is a CDP neighbor.\n\n"+current_ip+','+match_mac+','+next_switch_hostname+','+mac_port+"\n")
 				cdp_nei_ip='1'
 				no_cdp_nei_ip='1'
 				return(cdp_nei_ip,no_cdp_nei_ip)
