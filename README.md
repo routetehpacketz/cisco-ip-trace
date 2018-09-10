@@ -90,6 +90,4 @@ Note: The IP provided is a CDP neighbor.
 
 -Option to output range scan to a CSV file
 
--Fixed error when <a href="https://github.com/routetehpacketz/cisco-ip-trace/issues/1">the initial port the device is found on is a routed port</a>
-
 ##### I appreciate any and all feedback.
