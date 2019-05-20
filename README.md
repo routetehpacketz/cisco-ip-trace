@@ -76,6 +76,10 @@ Note: The IP provided is a CDP neighbor.
 
 ### Known issues/to-do
 
+-Change use of paramiko to netmiko
+
+-Add support for enable passwords
+
 -Enhanced input validation
 
 -Range scanning for subnet greater than /24
