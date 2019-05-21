@@ -1,4 +1,4 @@
-##Cisco IP Trace
+## Cisco IP Trace
 
 This Python script will take a single IP address or a range within a /24 and trace the associated MAC address(es) from a core Cisco router/switch to the edge switch port. It will output the provided IP address, MAC address, edge switch name, and port name on the console.
 
@@ -75,25 +75,6 @@ Note: The IP provided is a CDP neighbor.
 -The "core" device that will be ARPing for the IP in question must have layer 2 connectivity to the LAN on which the target device is connected or the CDP neighbor discovery process will fail
 
 ### Known issues/to-do
-
--Range scanning for subnet greater than /24
-
--Add prompt for new creds if supplied creds fail on a discovered neighbor
-
--Add support for Cisco Nexus switches with port-channels (just need to work out the command syntax difference)
-
--LLDP support
-
--Option to output range scan to a CSV file
-
-##### I appreciate any and all feedback.
-
-=======
--Change use of paramiko to netmiko
-
--Add support for enable passwords
-
--Enhanced input validation
 
 -Range scanning for subnet greater than /24
 
