@@ -23,7 +23,7 @@ Please input 1 or 2:
 Single IP:
 
 ```
-Enter IP address to trace: 10.1.10.184
+Enter IP address to trace: 10.1.10.185
 Enter the IP address of the core router/switch that can ARP for the IP address to trace: 10.1.1.1
 Username: admin
 Password: ********
@@ -64,7 +64,7 @@ Note: The IP provided is a CDP neighbor.
 
 -Python3.x
 
--Python module 'paramiko'
+-Python module 'netmiko'
 
 -SSH access to all Cisco devices from the computer running the script; Telnet is **not supported**
 
@@ -76,20 +76,14 @@ Note: The IP provided is a CDP neighbor.
 
 ### Known issues/to-do
 
--Enhanced input validation
-
 -Range scanning for subnet greater than /24
 
 -Add prompt for new creds if supplied creds fail on a discovered neighbor
-
--Fix issue when provided IP is a CDP neighbor and trace doesn't report past core
 
 -Add support for Cisco Nexus switches with port-channels (just need to work out the command syntax difference)
 
 -LLDP support
 
 -Option to output range scan to a CSV file
-
--Fixed error when <a href="https://github.com/routetehpacketz/cisco-ip-trace/issues/1">the initial port the device is found on is a routed port</a>
 
 ##### I appreciate any and all feedback.

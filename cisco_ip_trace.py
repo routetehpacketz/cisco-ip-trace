@@ -1,4 +1,4 @@
-import paramiko
+from netmiko import ConnectHandler
 import time
 import re
 import getpass
@@ -12,10 +12,9 @@ int_po_regex=re.compile(r'Po{1}\d*')
 int_regexes=[int_regex,int_po_regex]
 
 #determine if single IP or range
-target_type=input("Do you want to scan a single IP or a range?\n\n1. Single IP\n\n2. Range (must be contiguous; no greater than /24)\n\nPlease input 1 or 2: ")
+target_type=input("Do you want to scan a single IP or a range?\n\n1. Single IP\n2. Range (must be contiguous; no greater than /24)\n\nSelect 1 or 2: ")
 while target_type != "1" and target_type != "2":
 	target_type=input("\n\n1. Single IP\n\n2. Range (must be contiguous)\n\nPlease input 1 or 2: ")
-
 
 if target_type == "1":
 	startip="1"
@@ -45,29 +44,16 @@ password=getpass.getpass()
 def core(core_router,current_ip):
 	while True:
 		#connect to core device
-		core_router_ssh = paramiko.SSHClient()
-		core_router_ssh
-		core_router_ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-		core_router_ssh.connect(core_router, username=username, password=password, look_for_keys=False, allow_agent=False)
-		core_router_conn = core_router_ssh.invoke_shell()
+		core_router_conn=ConnectHandler(device_type='cisco_ios',host=core_router,username=username,password=password)
 		#obtain hostname of core device
-		core_router_hostname=core_router_conn.recv(20)
-		core_router_hostname=core_router_hostname.decode('utf-8')
-		core_router_hostname=core_router_hostname.strip('\r\n')
-		core_router_hostname=core_router_hostname.rstrip('#')
-		core_router_conn.send("term len 0\n")
-		time.sleep(.5)
+		core_router_hostname=core_router_conn.find_prompt()
 		#ping IP to scan and obtain MAC
-		core_router_conn.send("ping "+current_ip+" rep 2\n")
-		time.sleep(.5)		
-		core_router_conn.send("show ip arp "+current_ip+" | inc "+current_ip+"\n")
-		time.sleep(.5)
-		show_ip_arp=core_router_conn.recv(1000)
-		show_ip_arp=show_ip_arp.decode(encoding='utf-8')
+		core_router_conn.send_command("ping "+current_ip+" rep 2\n",delay_factor=.1)
+		show_ip_arp=core_router_conn.send_command("show ip arp "+current_ip+" | inc "+current_ip+"\n",delay_factor=.1)
 		match_mac=re.search(mac_regex,show_ip_arp)
 		#end script if no MAC address found for given IP
 		if not match_mac:
-			core_router_ssh.close()
+			core_router_conn.disconnect()
 			print ("\nNo MAC for "+current_ip+"\n")
 			cdp_nei_ip='1'
 			match_mac='1'
@@ -78,10 +64,7 @@ def core(core_router,current_ip):
 			routed_port=re.search(int_regex,show_ip_arp)
 			if routed_port:
 				routed_port=routed_port.group()
-				core_router_conn.send("show cdp nei "+routed_port+" det | inc IP\n")
-				time.sleep(.5)
-				show_cdp_nei=core_router_conn.recv(1000)
-				show_cdp_nei=show_cdp_nei.decode(encoding='utf-8')
+				show_cdp_nei=core_router_conn.send_command("show cdp nei "+routed_port+" det | inc IP",delay_factor=.1)
 				cdp_nei_ip=re.search(ip_regex,show_cdp_nei)
 				if not cdp_nei_ip:
 					print ("\n"+current_ip+" is directly connected to the core router\n")
@@ -90,11 +73,11 @@ def core(core_router,current_ip):
 					return (cdp_nei_ip,match_mac)
 					break
 				else:
-					core_router_ssh.close()
+					core_router_conn.disconnect()
 					cdp_nei_ip=cdp_nei_ip.group()
 					#if CDP neighbor is found, see if IP provided is the CDP neighbor and alert
 					if current_ip==cdp_nei_ip:
-						print("\nNote: The IP provided is a CDP neighbor.\n\n"+current_ip+','+match_mac+','+core_router_hostname+','+mac_port+"\n")
+						print("\nNote: The IP provided is a CDP neighbor.\n\n"+current_ip+','+match_mac+','+core_router_hostname.rstrip('#')+','+mac_port+"\n")
 						match_mac='1'
 						cdp_nei_ip='1'
 						return(cdp_nei_ip,match_mac)
@@ -105,54 +88,42 @@ def core(core_router,current_ip):
 						break
 					
 			#obtain interface name that MAC was learned on from core device
-			core_router_conn.send("show mac add add "+match_mac+" | inc "+match_mac+"\n")
-			time.sleep(.5)
-			show_mac_table=core_router_conn.recv(1000)
-			show_mac_table=show_mac_table.decode(encoding='utf-8')			
+			show_mac_table=core_router_conn.send_command("show mac add add "+match_mac+" | inc "+match_mac)	
 			#search for non-etherchannel interface name
 			mac_port=re.search(int_regexes[0],show_mac_table)
 			#if interface is an etherchannel, obtain member ports
 			if not mac_port:			
 				mac_port=re.search(int_regexes[1],show_mac_table)
 				mac_port=mac_port.group()
-				core_router_conn.send("show etherchan summ | inc "+mac_port+"\n")
-				time.sleep(.5)
-				etherchan_output=core_router_conn.recv(1000)
-				etherchan_output=etherchan_output.decode(encoding='utf-8')
+				etherchan_output=core_router_conn.send_command("show etherchan summ | inc "+mac_port,delay_factor=.1)
 				mac_port=re.search(int_regexes[0],etherchan_output)
 			mac_port=mac_port.group()
-			core_router_conn.send("show cdp nei "+mac_port+" det | inc IP\n")
-			time.sleep(.5)
-			show_cdp_nei=core_router_conn.recv(120)				
-			show_cdp_nei=show_cdp_nei.decode(encoding='utf-8')
+			show_cdp_nei=core_router_conn.send_command("show cdp nei "+mac_port+" det | inc IP",delay_factor=.1)
 			cdp_nei_ip=re.search(ip_regex,show_cdp_nei)
 			#if CDP neighbor is not found, check number of MACs learned on port
 			if not cdp_nei_ip:
-				core_router_conn.send("show mac add int "+mac_port+"\n")
-				time.sleep(.5)
-				mac_port_macs=core_router_conn.recv(1000)
-				mac_port_macs=mac_port_macs.decode(encoding='utf-8')
+				mac_port_macs=core_router_conn.send_command("show mac add int "+mac_port,delay_factor=.1)
 				multi_macs=re.findall(mac_regex,mac_port_macs)
-				core_router_ssh.close()
+				core_router_conn.disconnect()
 				#if more than one MAC is found on port, alert possible unmanaged switch
 				if len(multi_macs) > 1:
-					print ("\nNote: More than one MAC found on this port, possible unmanaged switch present.\n\n"+current_ip+','+match_mac+','+core_router_hostname+','+mac_port+"\n")
+					print ("\nNote: More than one MAC found on this port, possible unmanaged switch present.\n\n"+current_ip+','+match_mac+','+core_router_hostname.rstrip('#')+','+mac_port+"\n")
 					match_mac='1'
 					cdp_nei_ip='1'
 					return(cdp_nei_ip,match_mac)
 					break
 				else:
-					print ("\n"+current_ip+','+match_mac+','+core_router_hostname+','+mac_port+"\n")
+					print ("\n"+current_ip+','+match_mac+','+core_router_hostname.rstrip('#')+','+mac_port+"\n")
 					match_mac='1'
 					cdp_nei_ip='1'
 					return(cdp_nei_ip,match_mac)
 					break
 			else:
-				core_router_ssh.close()
+				core_router_conn.disconnect()
 				cdp_nei_ip=cdp_nei_ip.group()
 				#if CDP neighbor is found, see if IP provided is the CDP neighbor and alert
 				if current_ip==cdp_nei_ip:
-					print("\nNote: The IP provided is a CDP neighbor.\n\n"+current_ip+','+match_mac+','+core_router_hostname+','+mac_port+"\n")
+					print("\nNote: The IP provided is a CDP neighbor.\n\n"+current_ip+','+match_mac+','+core_router_hostname.rstrip('#')+','+mac_port+"\n")
 					match_mac='1'
 					cdp_nei_ip='1'
 					return(cdp_nei_ip,match_mac)
@@ -163,61 +134,42 @@ def core(core_router,current_ip):
 					break
 
 def check_cdp_nei(cdp_nei_ip,match_mac,current_ip):
-	while True:		
-		next_switch_ssh=paramiko.SSHClient()
-		next_switch_ssh
-		next_switch_ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-		next_switch_ssh.connect(cdp_nei_ip, username=username, password=password, look_for_keys=False, allow_agent=False)
-		next_switch_conn=next_switch_ssh.invoke_shell()				
-		next_switch_hostname=next_switch_conn.recv(120)
-		next_switch_hostname=next_switch_hostname.decode('utf-8')
-		next_switch_hostname=next_switch_hostname.strip('\r\n')
-		next_switch_hostname=next_switch_hostname.rstrip('#')
-		next_switch_conn.send("show mac add add "+match_mac+" | inc "+match_mac+"\n")
-		time.sleep(.5)
-		show_mac_table=next_switch_conn.recv(1200)
-		show_mac_table=show_mac_table.decode(encoding='utf-8')
+	while True:
+		next_switch_conn=ConnectHandler(device_type='cisco_ios',host=cdp_nei_ip,username=username,password=password)			
+		next_switch_hostname=next_switch_conn.find_prompt()
+		show_mac_table=next_switch_conn.send_command("show mac add add "+match_mac+" | inc "+match_mac,delay_factor=.1)
 		mac_port=re.search(int_regexes[0],show_mac_table)
 		if not mac_port:
 			mac_port=re.search(int_regexes[1],show_mac_table)
 			mac_port=mac_port.group()
-			next_switch_conn.send("show etherchan summ | inc "+mac_port+"\n")
-			time.sleep(.5)					
-			etherchan_output=next_switch_conn.recv(1000)
-			etherchan_output=etherchan_output.decode(encoding='utf-8')
+			etherchan_output=next_switch_conn.send_command("show etherchan summ | inc "+mac_port,delay_factor=.1)
 			mac_port=re.search(int_regexes[0],etherchan_output)
 		mac_port=mac_port.group()
-		next_switch_conn.send("show cdp nei "+mac_port+" det | inc IP\n")
-		time.sleep(.5)
-		show_cdp_nei=next_switch_conn.recv(120)
-		show_cdp_nei=show_cdp_nei.decode(encoding='utf-8')
+		show_cdp_nei=next_switch_conn.send_command("show cdp nei "+mac_port+" det | inc IP",delay_factor=.1)
 		cdp_nei_ip=re.search(ip_regex,show_cdp_nei)
 		if not cdp_nei_ip:
-			next_switch_conn.send("show mac add int "+mac_port+"\n")
-			time.sleep(.5)
-			mac_port_macs=next_switch_conn.recv(1000)
-			mac_port_macs=mac_port_macs.decode(encoding='utf-8')
-			next_switch_ssh.close()
+			mac_port_macs=next_switch_conn.send_command("show mac add int "+mac_port+"\n",delay_factor=.1)
+			next_switch_conn.disconnect()
 			multi_macs=re.findall(mac_regex,mac_port_macs)
 			#if more than one MAC is found on port, alert possible unmanaged switch
 			if len(multi_macs) > 1:
-				print ("\nNote: More than one MAC found on this port, possible unmanaged switch present.\n\n"+current_ip+','+match_mac+','+next_switch_hostname+','+mac_port+"\n")
+				print ("\nNote: More than one MAC found on this port, possible unmanaged switch present.\n\n"+current_ip+','+match_mac+','+next_switch_hostname.rstrip('#')+','+mac_port+"\n")
 				cdp_nei_ip='1'
 				no_cdp_nei_ip='1'
 				return(cdp_nei_ip,no_cdp_nei_ip)
 				break
 			else:
-				print ("\n"+current_ip+','+match_mac+','+next_switch_hostname+','+mac_port+"\n")
+				print ("\n"+current_ip+','+match_mac+','+next_switch_hostname.rstrip('#')+','+mac_port+"\n")
 				cdp_nei_ip='1'
 				no_cdp_nei_ip='1'
 				return(cdp_nei_ip,no_cdp_nei_ip)
 				break
 		else:
-			next_switch_ssh.close()
+			next_switch_conn.disconnect()
 			cdp_nei_ip=cdp_nei_ip.group()
 			#if CDP neighbor is found, see if IP provided is the CDP neighbor and alert
 			if current_ip==cdp_nei_ip:
-				print("\nNote: The IP provided is a CDP neighbor.\n\n"+current_ip+','+match_mac+','+next_switch_hostname+','+mac_port+"\n")
+				print("\nNote: The IP provided is a CDP neighbor.\n\n"+current_ip+','+match_mac+','+next_switch_hostname.rstrip('#')+','+mac_port+"\n")
 				cdp_nei_ip='1'
 				no_cdp_nei_ip='1'
 				return(cdp_nei_ip,no_cdp_nei_ip)
