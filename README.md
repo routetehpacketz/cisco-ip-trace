@@ -173,7 +173,6 @@ Note: The IP provided is a CDP neighbor.
 
 -Enhanced input validation
 
->>>>>>> 3a8337ae85bcf252b6e1004905770ef7cc069116
 -Range scanning for subnet greater than /24
 
 -Add prompt for new creds if supplied creds fail on a discovered neighbor
