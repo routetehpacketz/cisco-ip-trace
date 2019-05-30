@@ -49,7 +49,7 @@ def core(core_router,current_ip):
 		core_router_hostname=core_router_conn.find_prompt()
 		#ping IP to scan and obtain MAC
 		core_router_conn.send_command("ping "+current_ip+" rep 2\n",delay_factor=.1)
-		show_ip_arp=core_router_conn.send_command("show ip arp "+current_ip+" | inc "+current_ip+"\n",delay_factor=.1)
+		show_ip_arp=core_router_conn.send_command("show ip arp "+current_ip+"\n",delay_factor=.1)
 		match_mac=re.search(mac_regex,show_ip_arp)
 		#end script if no MAC address found for given IP
 		if not match_mac:
@@ -86,13 +86,13 @@ def core(core_router,current_ip):
 					#if IP provided is not a CDP neighbor, return variables for use in check_cdp_nei function
 						return (cdp_nei_ip,match_mac)
 						break
-					
+
 			#obtain interface name that MAC was learned on from core device
-			show_mac_table=core_router_conn.send_command("show mac add add "+match_mac+" | inc "+match_mac)	
+			show_mac_table=core_router_conn.send_command("show mac add add "+match_mac+" | inc "+match_mac)
 			#search for non-etherchannel interface name
 			mac_port=re.search(int_regexes[0],show_mac_table)
 			#if interface is an etherchannel, obtain member ports
-			if not mac_port:			
+			if not mac_port:
 				mac_port=re.search(int_regexes[1],show_mac_table)
 				mac_port=mac_port.group()
 				etherchan_output=core_router_conn.send_command("show etherchan summ | inc "+mac_port,delay_factor=.1)
@@ -135,7 +135,7 @@ def core(core_router,current_ip):
 
 def check_cdp_nei(cdp_nei_ip,match_mac,current_ip):
 	while True:
-		next_switch_conn=ConnectHandler(device_type='cisco_ios',host=cdp_nei_ip,username=username,password=password)			
+		next_switch_conn=ConnectHandler(device_type='cisco_ios',host=cdp_nei_ip,username=username,password=password)
 		next_switch_hostname=next_switch_conn.find_prompt()
 		show_mac_table=next_switch_conn.send_command("show mac add add "+match_mac+" | inc "+match_mac,delay_factor=.1)
 		mac_port=re.search(int_regexes[0],show_mac_table)
