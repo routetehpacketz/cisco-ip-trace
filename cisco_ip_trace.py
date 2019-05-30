@@ -20,6 +20,7 @@ if target_type == "1":
 	startip="1"
 	endip="1"
 	current_ip=input("Enter IP address to trace: ")
+	current_vrf=input("Enter VRF for the IP: ")
 	while not re.match(ip_regex,current_ip):
 		current_ip=input("Enter a valid IP address to trace: ")
 else:
@@ -48,8 +49,8 @@ def core(core_router,current_ip):
 		#obtain hostname of core device
 		core_router_hostname=core_router_conn.find_prompt()
 		#ping IP to scan and obtain MAC
-		core_router_conn.send_command("ping "+current_ip+" rep 2\n",delay_factor=.1)
-		show_ip_arp=core_router_conn.send_command("show ip arp "+current_ip+"\n",delay_factor=.1)
+		core_router_conn.send_command("ping vrf"+current_vrf+" "+current_ip+" rep 2\n",delay_factor=.1)
+		show_ip_arp=core_router_conn.send_command("show ip arp vrf "+current_vrf+" "+current_ip+"\n",delay_factor=.1)
 		match_mac=re.search(mac_regex,show_ip_arp)
 		#end script if no MAC address found for given IP
 		if not match_mac:
