@@ -6,39 +6,21 @@ Please note that this script is only designed to run on Cisco IOS and NX-OS devi
 
 ### Usage
 
-1. Open a command prompt/terminal and run cisco_ip_trace.py 
+Open a command prompt/terminal and run cisco_ip_trace.py 
 
-2. Choose between scanning a single IP address or a range.
 
-```
-Do you want to scan a single IP or a range?
+usage: cisco_ip_trace.py [-h] -n NETWORK_TO_SCAN -c CORE_SWITCH -u USERNAME -f
+                         FILENAME [-v VRF]
 
-1. Single IP
+optional arguments:
+  -h, --help          show this help message and exit
+  -n NETWORK_TO_SCAN  The network to scan in CIDR format example
+                      192.168.10.0/24
+  -c CORE_SWITCH      The IP address of the core switch to start the scan from
+  -u USERNAME         The username to connect with
+  -f FILENAME         The file to output results to
+  -v VRF              Optional VRF name
 
-2. Range (must be contiguous; no greater than /24)
-
-Please input 1 or 2:
-```
-
-Single IP:
-
-```
-Enter IP address to trace: 10.1.10.185
-Enter the IP address of the core router/switch that can ARP for the IP address to trace: 10.1.1.1
-Username: admin
-Password: ********
-```
-
-Range of IPs:
-
-```
-Enter first three octets of subnet you'd like to scan (ex. 10.1.1.): 10.1.10
-Enter last octet of first IP in the range to scan: 184
-Enter the last octet of the last IP in the range to scan: 187
-Enter the IP address of the core router/switch that can ARP for the IP address to trace: 10.1.1.1
-Username: admin
-Password: *********
-```
 
 The script will then use a series of show commands and regexes against the show command outputs to identify the port the associated MAC address is learned on, determine if there is another Cisco switch connected via CDP, and continues the trace until it reaches a port where no switch is detected. It will then print its findings like this:
 
@@ -75,8 +57,6 @@ Note: The IP provided is a CDP neighbor.
 -The "core" device that will be ARPing for the IP in question must have layer 2 connectivity to the LAN on which the target device is connected or the CDP neighbor discovery process will fail
 
 ### Known issues/to-do
-
--Range scanning for subnet greater than /24
 
 -Add prompt for new creds if supplied creds fail on a discovered neighbor
 
