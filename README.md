@@ -6,65 +6,47 @@ Please note that this script is only designed to run on Cisco IOS and NX-OS devi
 
 ### Usage
 
-1. Open a command prompt/terminal and run cisco_ip_trace.py 
+Open a command prompt/terminal and run cisco_ip_trace.py. The script has two options to run it: interactive prompts or parameters. 
 
-2. Choose between scanning a single IP address or a range.
+These are the parameters that may be passed to the script:
+```
+usage: cisco_ip_trace.py [-h] -n NETWORK_TO_SCAN -c CORE_SWITCH -u USERNAME -f
+                         FILENAME [-v VRF]
+
+optional arguments:
+  -h, --help          show this help message and exit
+  -n NETWORK_TO_SCAN  The network to scan in CIDR format example
+                      192.168.10.0/24
+  -c CORE_SWITCH      The IP address of the core switch to start the scan from
+  -u USERNAME         The username to connect with
+  -f FILENAME         The file to output results to (optional)
+  -v VRF              Optional VRF name
+```
+If no parameters are provided, the script will run with interactive prompts:
 
 ```
-Do you want to scan a single IP or a range?
-
-1. Single IP
-
-2. Range (must be contiguous; no greater than /24)
-
-Please input 1 or 2:
-```
-
-Single IP:
-
-```
-Enter IP address to trace: 10.1.10.185
-Enter the IP address of the core router/switch that can ARP for the IP address to trace: 10.1.1.1
+Enter target in CIDR notation (192.168.10.0/24): 192.168.10.0/24
+Enter VRF for the IP. Press 'Enter' if you're not using VRFs: myvrf
+Enter the IP address of the core router/switch that can ARP for the IP address to trace: 192.168.10.1
 Username: admin
-Password: ********
-```
-
-Range of IPs:
-
-```
-Enter first three octets of subnet you'd like to scan (ex. 10.1.1.): 10.1.10
-Enter last octet of first IP in the range to scan: 184
-Enter the last octet of the last IP in the range to scan: 187
-Enter the IP address of the core router/switch that can ARP for the IP address to trace: 10.1.1.1
-Username: admin
-Password: *********
+Password: *****
+Enter a filename to save output as CSV (leave blank for no file output): myfile.csv
 ```
 
 The script will then use a series of show commands and regexes against the show command outputs to identify the port the associated MAC address is learned on, determine if there is another Cisco switch connected via CDP, and continues the trace until it reaches a port where no switch is detected. It will then print its findings like this:
 
-`10.1.10.185,0123.4567.6d36,SwitchB,Gi1/0/2`
-
-The script will alert you if multiple MAC addresses are currently found on the edge port. This is just extra info in case it helps narrow down a device:
-
 ```
-Note: More than one MAC found on this port, possible unmanaged switch present.
+Tracing 192.168.10.10...complete!
 
-10.1.10.184,abcd.4567.2fc2,SwitchA,Gi2/0/30
-```
-
-The script will also alert you if the provided IP *is a CDP neighbor*. Currently this will not provide you port information past the core router/switch:
-
-```
-Note: The IP provided is a CDP neighbor.
-
-10.1.1.10,0124.abcd.1234,CoreA,Gi4/1
+Device IP,MAC Address,Switch,Port,Port Description,Interface Type,VLANs on port,Port MAC count
+192.168.10.10,0123.4567.6d36,SwitchB,Gi1/0/2,My Description,access,"1",1
 ```
 
 ### Requirements
 
 -Python3.x
 
--Python module 'netmiko'
+-Python modules 'netmiko', 'ipcalc', and 'argparse'
 
 -SSH access to all Cisco devices from the computer running the script; Telnet is **not supported**
 
@@ -76,14 +58,10 @@ Note: The IP provided is a CDP neighbor.
 
 ### Known issues/to-do
 
--Range scanning for subnet greater than /24
-
 -Add prompt for new creds if supplied creds fail on a discovered neighbor
 
 -Add support for Cisco Nexus switches with port-channels (just need to work out the command syntax difference)
 
 -LLDP support
-
--Option to output range scan to a CSV file
 
 ##### I appreciate any and all feedback.
