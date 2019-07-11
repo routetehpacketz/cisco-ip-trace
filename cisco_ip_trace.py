@@ -4,7 +4,6 @@ import argparse
 import ipcalc
 import sys
 from netmiko import ConnectHandler
-import time
 import re
 import getpass
 
