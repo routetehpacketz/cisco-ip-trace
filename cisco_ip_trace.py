@@ -14,7 +14,7 @@ import getpass
 #
 ##########################################################################################################
 
-csv_header = "Device IP,MAC Address,Switch,Port,Port Description,Interface Type,VLANs on port,Active MAC address count on port\n"
+csv_header = "Device IP,MAC Address,Switch,Port,Port Description,Interface Type,VLANs on port,Port MAC count\n"
 csv_line_template = "{},{},{},{},{},{},\"{}\",{}\n"
 
 ##########################################################################################################
@@ -39,29 +39,47 @@ access_vlan_regex=re.compile(r'switchport access vlan (\d*)', re.MULTILINE)
 #
 ##########################################################################################################
 
-parser = argparse.ArgumentParser()
+#determine if arguments were passed to the script and parse if so
+if len(sys.argv) > 1:
 
-parser.add_argument('-n', action='store', dest='network_to_scan',
-                    help='The network to scan in CIDR format example 192.168.10.0/24', required=True)
+	parser = argparse.ArgumentParser()
 
-parser.add_argument('-c', action='store', dest='core_switch',
-                    help='The IP address of the core switch to start the scan from', required=True)
+	parser.add_argument('-n', action='store', dest='network_to_scan',
+						help='The network to scan in CIDR format example 192.168.10.0/24', required=True)
 
-parser.add_argument('-u', action='store', dest='username',
-                    help='The username to connect with', required=True)
+	parser.add_argument('-c', action='store', dest='core_switch',
+						help='The IP address of the core switch to start the scan from', required=True)
 
-parser.add_argument('-f', action='store', dest='filename',
-                    help='The file to output results to', required=True)
+	parser.add_argument('-u', action='store', dest='username',
+						help='The username to connect with', required=True)
 
-parser.add_argument('-v', action='store', dest='vrf',
-                    help='Optional VRF name', default="")
-try:
-    options = parser.parse_args()
-except:
-    parser.print_help()
-    sys.exit(0)
+	parser.add_argument('-f', action='store', dest='filename',
+						help='The file to output results to', required=True)
 
-password=getpass.getpass()
+	parser.add_argument('-v', action='store', dest='vrf',
+						help='Optional VRF name', default="")
+	try:
+		options = parser.parse_args()
+	except:
+		parser.print_help()
+		sys.exit(0)
+#if no arguments parsed, run interactive prompts
+else:
+	options=None
+	network_to_scan=input("Enter target in CIDR notation (192.168.10.0/24): ")
+	while not re.match(subnet_regex,network_to_scan):
+		network_to_scan=input("Enter target in CIDR notation (192.168.10.0/24): ")
+	current_vrf=input("Enter VRF for the IP. Press 'Enter' if you're not using VRFs: ")
+	if current_vrf == "":
+		vrf = ""
+	else:
+		vrf = "vrf"
+	core_switch=input("Enter the IP address of the core router/switch that can ARP for the IP address to trace: ")
+	while not re.match(ip_regex,core_switch):
+		core_switch=input("The entered value is not an IP address. Please re-enter the IP of the core router/switch: ")
+	username=input("Username: ")
+	password=getpass.getpass()
+	filename=input("Enter a filename to save output as CSV (leave blank for no file output): ")
 
 ##########################################################################################################
 #
@@ -214,7 +232,7 @@ def TraceMac(mac, device_ip, switch_ip, username, password):
 
 	# Status output
 	#print("Switch "+next_switch_hostname+" port "+port+".. ", end ="")
-	print("Switch {} port {}.. ".format(next_switch_hostname, port), end ="")
+	#print("Switch {} port {}.. ".format(next_switch_hostname, port), end ="")
 
 
 	# See if port is another Cisco device, if it is, start tracing on that switch
@@ -225,7 +243,7 @@ def TraceMac(mac, device_ip, switch_ip, username, password):
 	# Build line to print
 	else:
 		# Status output
-		print("complete!")
+		print("complete!\n")
 
 		# Gather intformation on the final port
 		description = GetInterfaceDescription(next_switch_conn, port)
@@ -246,13 +264,23 @@ def TraceMac(mac, device_ip, switch_ip, username, password):
 def TraceIPAddress(ipaddress_ipcalc):
 	# Get the MAC address from the core via ARP
 	ipaddress = str(ipaddress_ipcalc)
-	print("\nTracing "+ipaddress+".. ", end ="")
-	mac=GetMacFromIP(ipaddress, options.core_switch, options.username, password, options.vrf)
+	print("\nTracing "+ipaddress+"...", end ="")
+	#if using script arguments
+	if options:
+		mac=GetMacFromIP(ipaddress, options.core_switch, options.username, password, options.vrf)
+	#if using prompts
+	else:
+		mac=GetMacFromIP(ipaddress, core_switch, username, password, vrf)
 	
 	# If we can find the MAC start tracing
 	if mac:
-		print("MAC address "+mac+".. ", end ="")
-		line=TraceMac(mac, ipaddress, options.core_switch, options.username, password)
+		#print("MAC address "+mac+".. ", end ="")
+		#if using script arguments
+		if options:
+			line=TraceMac(mac, ipaddress, options.core_switch, options.username, password)
+		#if using prompts
+		else:
+			line=TraceMac(mac, ipaddress, core_switch, username, password)
 	# otherwise move on to the next IP address
 	else:
 		print("MAC not found in ARP")
@@ -268,16 +296,30 @@ def TraceIPAddress(ipaddress_ipcalc):
 
 def main():
 
-	# Open the CSV and print the header
-	csv_file = open(options.filename, "w")
-	csv_file.write(csv_header)
-
-	# Loop over each IP in the network and trace
-	for ipaddress_ipcalc in ipcalc.Network(options.network_to_scan):
-		line = TraceIPAddress(ipaddress_ipcalc)
-		csv_file.write(line)
-
-	# Close the file and exit
-	csv_file.close()
+	#if using script arguments
+	if options:
+		#if outputting to csv with arguments
+		if options.filename:
+			# Open the CSV and print the header
+			csv_file = open(options.filename, "w")
+			csv_file.write(csv_header)
+			for ipaddress_ipcalc in ipcalc.Network(options.network_to_scan):
+				line = TraceIPAddress(ipaddress_ipcalc)
+				print(line)
+				csv_file.write(line)
+	#if outputting to csv with prompts
+	elif filename:
+		csv_file = open(filename,"w")
+		csv_file.write(csv_header)
+		# Loop over each IP in the network and trace
+		for ipaddress_ipcalc in ipcalc.Network(options.network_to_scan):
+			line = TraceIPAddress(ipaddress_ipcalc)
+			print(csv_header+line)
+			csv_file.write(line)
+	#just print lines if not outputting to csv
+	else:
+		for ipaddress_ipcalc in ipcalc.Network(network_to_scan):
+			line = TraceIPAddress(ipaddress_ipcalc)
+			print(csv_header+line)
 
 main()
