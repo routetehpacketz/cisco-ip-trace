@@ -1,6 +1,6 @@
 ## Cisco IP Trace
 
-This Python script will take a single IP address or a range within a /24 and trace the associated MAC address(es) from a core Cisco router/switch to the edge switch port. It will output the provided IP address, MAC address, edge switch name, and port name on the console.
+This Python script will take allow you to enter a single IP or CIDR network range and trace the associated MAC address(es) from a core Cisco router/switch to the edge switch port. It will output the provided IP address, MAC address, edge switch name, and port name on the console.
 
 Please note that this script is only designed to run on Cisco IOS and NX-OS devices.
 
