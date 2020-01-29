@@ -312,9 +312,9 @@ def main():
 		csv_file.write(csv_header)
 		# Loop over each IP in the network and trace
     for ipaddress_ipcalc in ipcalc.Network(network_to_scan):
-			line = TraceIPAddress(ipaddress_ipcalc)
-			print(csv_header+line)
-			csv_file.write(line)
+		line = TraceIPAddress(ipaddress_ipcalc)
+		print(csv_header+line)
+		csv_file.write(line)
 	#just print lines if not outputting to csv
 	else:
 		for ipaddress_ipcalc in ipcalc.Network(network_to_scan):
