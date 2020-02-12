@@ -6,6 +6,7 @@ import sys
 from netmiko import ConnectHandler
 import re
 import getpass
+from socket import gethostbyaddr
 
 ##########################################################################################################
 #
@@ -13,8 +14,8 @@ import getpass
 #
 ##########################################################################################################
 
-csv_header = "Device IP,MAC Address,Switch,Port,Port Description,Interface Type,VLANs on port,Port MAC count\n"
-csv_line_template = "{},{},{},{},{},{},\"{}\",{}\n"
+csv_header = "Device IP,Reverse DNS Name,MAC Address,Switch,Port,Port Description,Interface Type,VLANs on port,Port MAC count\n"
+csv_line_template = "{},{},{},{},{},{},{},\"{}\",{}\n"
 
 ##########################################################################################################
 #
@@ -213,7 +214,7 @@ def GetMacCount(next_switch_conn, mac_port):
 #  TraceMac - Trace the MAC address through switches
 #
 ##########################################################################################################
-def TraceMac(mac, device_ip, switch_ip, username, password):
+def TraceMac(mac, device_ip, dns_name, switch_ip, username, password):
 
 	# connect to switch
 	next_switch_conn=ConnectHandler(device_type='cisco_ios',host=switch_ip,username=username,password=password)
@@ -229,15 +230,10 @@ def TraceMac(mac, device_ip, switch_ip, username, password):
 		line = "{},{},{},Unknown\n".format(device_ip,mac,next_switch_hostname)
 		return line
 
-	# Status output
-	#print("Switch "+next_switch_hostname+" port "+port+".. ", end ="")
-	#print("Switch {} port {}.. ".format(next_switch_hostname, port), end ="")
-
-
 	# See if port is another Cisco device, if it is, start tracing on that switch
 	cdp_nei_ip=GetCDPNeighbor(next_switch_conn, port)
 	if cdp_nei_ip:
-		line=TraceMac(mac, device_ip, cdp_nei_ip, username, password)
+		line=TraceMac(mac, device_ip, dns_name, cdp_nei_ip, username, password)
 
 	# Build line to print
 	else:
@@ -249,7 +245,7 @@ def TraceMac(mac, device_ip, switch_ip, username, password):
 		interface_type, vlans = GetInterfaceMode(next_switch_conn, port)
 		mac_count = GetMacCount(next_switch_conn, port)
 		
-		line = csv_line_template.format(device_ip,mac,next_switch_hostname,port,description,interface_type,vlans,str(mac_count))
+		line = csv_line_template.format(device_ip,dns_name,mac,next_switch_hostname,port,description,interface_type,vlans,str(mac_count))
 	
 	next_switch_conn.disconnect()
 
@@ -263,6 +259,13 @@ def TraceMac(mac, device_ip, switch_ip, username, password):
 def TraceIPAddress(ipaddress_ipcalc):
 	# Get the MAC address from the core via ARP
 	ipaddress = str(ipaddress_ipcalc)
+	dns_name=None
+	try:
+		dns_name=gethostbyaddr(ipaddress)[0]
+	except:
+		pass
+	if not dns_name:
+		dns_name="N/A"
 	print("\nTracing "+ipaddress+"...", end ="")
 	#if using script arguments
 	if options:
@@ -273,13 +276,12 @@ def TraceIPAddress(ipaddress_ipcalc):
 	
 	# If we can find the MAC start tracing
 	if mac:
-		#print("MAC address "+mac+".. ", end ="")
 		#if using script arguments
 		if options:
-			line=TraceMac(mac, ipaddress, options.core_switch, options.username, password)
+			line=TraceMac(mac, ipaddress, dns_name, options.core_switch, options.username, password)
 		#if using prompts
 		else:
-			line=TraceMac(mac, ipaddress, core_switch, username, password)
+			line=TraceMac(mac, ipaddress, dns_name, core_switch, username, password)
 	# otherwise move on to the next IP address
 	else:
 		print("MAC not found in ARP")
