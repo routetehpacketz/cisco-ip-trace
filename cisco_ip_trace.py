@@ -82,7 +82,7 @@ else:
 		core_switch=input("The entered value is not an IP address. Please re-enter the IP of the core router/switch: ")
 	username=input("Username: ")
 	password=getpass.getpass()
-	secret=getpass.getpass()
+	secret=getpass.getpass("Enable password: ")
 	filename=input("Enter a filename to save output as CSV (leave blank for no file output): ")
 
 ##########################################################################################################
