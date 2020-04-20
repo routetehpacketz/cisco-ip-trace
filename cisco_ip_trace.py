@@ -58,6 +58,9 @@ if len(sys.argv) > 1:
 
 	parser.add_argument('-v', action='store', dest='vrf',
 						help='Optional VRF name', default="")
+
+	parser.add_argument('-s', action='store', dest='secret',
+						help='Optional enable password(secret)',default="")
 	try:
 		options = parser.parse_args()
 	except:
@@ -69,7 +72,7 @@ else:
 	network_to_scan=input("Enter target in CIDR notation (192.168.10.0/24): ")
 	while not re.match(subnet_regex,network_to_scan):
 		network_to_scan=input("Enter target in CIDR notation (192.168.10.0/24): ")
-	current_vrf=input("Enter VRF for the IP. Press 'Enter' if you're not using VRFs: ")
+	current_vrf=input("Enter VRF for the IP (leave blank if not needed): ")
 	if current_vrf == "":
 		vrf = ""
 	else:
@@ -79,6 +82,7 @@ else:
 		core_switch=input("The entered value is not an IP address. Please re-enter the IP of the core router/switch: ")
 	username=input("Username: ")
 	password=getpass.getpass()
+	secret=getpass.getpass()
 	filename=input("Enter a filename to save output as CSV (leave blank for no file output): ")
 
 ##########################################################################################################
@@ -86,7 +90,7 @@ else:
 #  GetMacFromIP - finds the MAC address of an IP address via ARP
 #
 ##########################################################################################################
-def GetMacFromIP(current_ip, core_router, username, password, current_vrf):
+def GetMacFromIP(current_ip, core_router, username, password, secret, current_vrf):
 	#connect to core device
 	core_router_conn=ConnectHandler(device_type='cisco_ios',host=core_router,username=username,password=password)
 	#obtain hostname of core device
@@ -214,7 +218,7 @@ def GetMacCount(next_switch_conn, mac_port):
 #  TraceMac - Trace the MAC address through switches
 #
 ##########################################################################################################
-def TraceMac(mac, device_ip, dns_name, switch_ip, username, password):
+def TraceMac(mac, device_ip, dns_name, switch_ip, username, password, secret):
 
 	# connect to switch
 	next_switch_conn=ConnectHandler(device_type='cisco_ios',host=switch_ip,username=username,password=password)
@@ -269,19 +273,19 @@ def TraceIPAddress(ipaddress_ipcalc):
 	print("\nTracing "+ipaddress+"...", end ="")
 	#if using script arguments
 	if options:
-		mac=GetMacFromIP(ipaddress, options.core_switch, options.username, password, options.vrf)
+		mac=GetMacFromIP(ipaddress, options.core_switch, options.username, password, options.secret, options.vrf)
 	#if using prompts
 	else:
-		mac=GetMacFromIP(ipaddress, core_switch, username, password, vrf)
+		mac=GetMacFromIP(ipaddress, core_switch, username, password, secret, vrf)
 	
 	# If we can find the MAC start tracing
 	if mac:
 		#if using script arguments
 		if options:
-			line=TraceMac(mac, ipaddress, dns_name, options.core_switch, options.username, password)
+			line=TraceMac(mac, ipaddress, dns_name, options.core_switch, options.username, password, options.secret)
 		#if using prompts
 		else:
-			line=TraceMac(mac, ipaddress, dns_name, core_switch, username, password)
+			line=TraceMac(mac, ipaddress, dns_name, core_switch, username, password, secret)
 	# otherwise move on to the next IP address
 	else:
 		print("MAC not found in ARP")
