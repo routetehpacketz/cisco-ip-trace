@@ -75,23 +75,23 @@ else:
 	vrf = ""
 # if no arguments parsed, run interactive prompts
 else:
-options = None
-network_to_scan = input("Enter target in CIDR notation (192.168.10.0/24): ")
-while not re.match(subnet_regex, network_to_scan):
+	options = None
 	network_to_scan = input("Enter target in CIDR notation (192.168.10.0/24): ")
-current_vrf = input("Enter VRF for the IP (leave blank if not needed): ")
-if current_vrf == "":
-	vrf = ""
-else:
-	vrf = "vrf"
-core_switch = input("Enter the IP address of the core router/switch that can ARP for the IP address to trace: ")
-while not re.match(ip_regex, core_switch):
-	core_switch = input(
-		"The entered value is not an IP address. Please re-enter the IP of the core router/switch: ")
-username = input("Username: ")
-password = getpass.getpass()
-secret = getpass.getpass("Enable password (leave blank if not needed): ")
-filename = input("Enter a filename to save output as CSV (leave blank for no file output): ")
+	while not re.match(subnet_regex, network_to_scan):
+	network_to_scan = input("Enter target in CIDR notation (192.168.10.0/24): ")
+	current_vrf = input("Enter VRF for the IP (leave blank if not needed): ")
+	if current_vrf == "":
+		vrf = ""
+	else:
+		vrf = "vrf"
+	core_switch = input("Enter the IP address of the core router/switch that can ARP for the IP address to trace: ")
+	while not re.match(ip_regex, core_switch):
+		core_switch = input(
+			"The entered value is not an IP address. Please re-enter the IP of the core router/switch: ")
+	username = input("Username: ")
+	password = getpass.getpass()
+	secret = getpass.getpass("Enable password (leave blank if not needed): ")
+	filename = input("Enter a filename to save output as CSV (leave blank for no file output): ")
 
 
 ##########################################################################################################
