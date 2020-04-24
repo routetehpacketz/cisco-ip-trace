@@ -19,7 +19,7 @@ optional arguments:
                       192.168.10.0/24
   -c CORE_SWITCH      The IP address of the core switch to start the scan from
   -u USERNAME         The username to connect with
-  -f FILENAME         The file to output results to (optional)
+  -f FILENAME         Optional file to output results to
   -v VRF              Optional VRF name
 ```
 If no parameters are provided, the script will run with interactive prompts:
@@ -30,6 +30,7 @@ Enter VRF for the IP. Press 'Enter' if you're not using VRFs: myvrf
 Enter the IP address of the core router/switch that can ARP for the IP address to trace: 192.168.10.1
 Username: admin
 Password: *****
+Enable password (leave blank if not needed):
 Enter a filename to save output as CSV (leave blank for no file output): myfile.csv
 ```
 
@@ -48,7 +49,7 @@ Device IP,MAC Address,Switch,Port,Port Description,Interface Type,VLANs on port,
 
 -Python modules 'netmiko', 'ipcalc', and 'argparse'
 
--SSH access to all Cisco devices from the computer running the script; Telnet is **not supported**
+-SSH access to all Cisco devices from the computer running the script
 
 -Cisco Discovery Protocol (CDP) enabled on all Cisco switches
 
