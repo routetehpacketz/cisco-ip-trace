@@ -28,7 +28,7 @@ mac_regex = re.compile(r'[0-9a-f]{4}\.[0-9a-f]{4}\.[0-9a-f]{4}')
 int_regex = re.compile(r'Fa{1}\S*\d/\S*\d{1,2}|Gi{1}\S*\d/\S*\d|Eth{1}\d/\S*\d{1,2}')
 int_po_regex = re.compile(r'Po{1}\d*')
 int_regexes = [int_regex, int_po_regex]
-air_regex = re.compile(r'AIR-.*', re.MULTILINE)
+air_regex = re.compile(r'AIR-.*|SEP.*', re.MULTILINE)
 description_regex = re.compile(r'Description: (.*)', re.MULTILINE)
 access_vlan_regex = re.compile(r'switchport access vlan (\d*)', re.MULTILINE)
 
@@ -78,7 +78,7 @@ else:
 	options = None
 	network_to_scan = input("Enter target in CIDR notation (192.168.10.0/24): ")
 	while not re.match(subnet_regex, network_to_scan):
-	network_to_scan = input("Enter target in CIDR notation (192.168.10.0/24): ")
+		network_to_scan = input("Enter target in CIDR notation (192.168.10.0/24): ")
 	current_vrf = input("Enter VRF for the IP (leave blank if not needed): ")
 	if current_vrf == "":
 		vrf = ""
