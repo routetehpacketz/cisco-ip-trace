@@ -67,12 +67,12 @@ if len(sys.argv) > 1:
 		sys.exit(0)
 	password = getpass.getpass()
 	secret = getpass.getpass("Enable password (leave blank if not needed): ")
-if options.vrf:
-	current_vrf = options.vrf
-	vrf = "vrf"
-else:
-	current_vrf = ""
-	vrf = ""
+	if options.vrf:
+		current_vrf = options.vrf
+		vrf = "vrf"
+	else:
+		current_vrf = ""
+		vrf = ""
 # if no arguments parsed, run interactive prompts
 else:
 	options = None
