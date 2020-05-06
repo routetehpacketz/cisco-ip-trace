@@ -28,7 +28,7 @@ mac_regex = re.compile(r'[0-9a-f]{4}\.[0-9a-f]{4}\.[0-9a-f]{4}')
 int_regex = re.compile(r'Fa{1}\S*\d/\S*\d{1,2}|Gi{1}\S*\d/\S*\d|Eth{1}\d/\S*\d{1,2}|Te{1}\S*\d/\S*\d')
 int_po_regex = re.compile(r'Po{1}\d*')
 int_regexes = [int_regex, int_po_regex]
-air_regex = re.compile(r'AIR-.*|SEP.*', re.MULTILINE)
+bypass_regex = re.compile(r'AIR-|Cisco IP Phone', re.MULTILINE)
 description_regex = re.compile(r'Description: (.*)', re.MULTILINE)
 access_vlan_regex = re.compile(r'switchport access vlan (\d*)', re.MULTILINE)
 
@@ -53,13 +53,11 @@ if len(sys.argv) > 1:
 						help='The username to connect with', required=True)
 
 	parser.add_argument('-f', action='store', dest='filename',
-						help='The file to output results to', required=True)
+						help='Optional file to output results to', default="")
 
 	parser.add_argument('-v', action='store', dest='vrf',
 						help='Optional VRF name', default="")
 
-	parser.add_argument('-s', action='store', dest='secret',
-						help='Optional enable password(secret)', default="")
 	try:
 		options = parser.parse_args()
 	except:
@@ -155,8 +153,8 @@ def GetPortByMac(next_switch_conn, mac):
 def GetCDPNeighbor(next_switch_conn, mac_port):
 	# Check for access point because we usually can't SSH into those
 	show_cdp_nei = next_switch_conn.send_command("show cdp nei " + mac_port + " det", delay_factor=.1)
-	cdp_air_check = re.search(air_regex, show_cdp_nei)
-	if cdp_air_check:
+	bypass_check = re.search(bypass_regex, show_cdp_nei)
+	if bypass_check:
 		return False
 
 	# Get the CDP neighbor IP
