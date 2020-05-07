@@ -140,8 +140,9 @@ def GetPortByMac(next_switch_conn, mac):
 	# if a mac is found, change from regex result to string
 	if mac_port:
 		mac_port = mac_port.group()
-
-	return mac_port
+		return mac_port
+	else:
+		return False
 
 
 ##########################################################################################################
@@ -243,7 +244,7 @@ def TraceMac(mac, device_ip, dns_name, switch_ip, username, password, secret):
 	if not port:
 		next_switch_conn.disconnect()
 		print("Port Unknown")
-		line = "{},{},{},Unknown\n".format(device_ip, mac, next_switch_hostname)
+		line = "{},{},{},{},Unknown\n".format(device_ip, dns_name, mac, next_switch_hostname)
 		return line
 
 	# See if port is another Cisco device, if it is, start tracing on that switch
