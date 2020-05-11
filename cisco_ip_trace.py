@@ -8,6 +8,11 @@ import re
 import getpass
 from socket import gethostbyaddr
 
+#error suppressing
+class DevNull:
+    def write(self, msg):
+        pass
+
 ##########################################################################################################
 #
 #  Template and header for CSV
@@ -25,10 +30,9 @@ csv_line_template = "{},{},{},{},{},{},{},\"{}\",{}\n"
 ip_regex = re.compile(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')
 subnet_regex = re.compile(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.')
 mac_regex = re.compile(r'[0-9a-f]{4}\.[0-9a-f]{4}\.[0-9a-f]{4}')
-int_regex = re.compile(r'Fa{1}\S*\d/\S*\d{1,2}|Gi{1}\S*\d/\S*\d|Eth{1}\d/\S*\d{1,2}')
+int_regex = re.compile(r'Fa{1}\S*\d/\S*\d{1,2}|Gi{1}\S*\d/\S*\d|Eth{1}\d/\S*\d{1,2}|Te{1}\S*\d/\S*\d')
 int_po_regex = re.compile(r'Po{1}\d*')
 int_regexes = [int_regex, int_po_regex]
-air_regex = re.compile(r'AIR-.*', re.MULTILINE)
 description_regex = re.compile(r'Description: (.*)', re.MULTILINE)
 access_vlan_regex = re.compile(r'switchport access vlan (\d*)', re.MULTILINE)
 
@@ -53,13 +57,11 @@ if len(sys.argv) > 1:
 						help='The username to connect with', required=True)
 
 	parser.add_argument('-f', action='store', dest='filename',
-						help='The file to output results to', required=True)
+						help='Optional file to output results to', default="")
 
 	parser.add_argument('-v', action='store', dest='vrf',
 						help='Optional VRF name', default="")
 
-	parser.add_argument('-s', action='store', dest='secret',
-						help='Optional enable password(secret)', default="")
 	try:
 		options = parser.parse_args()
 	except:
@@ -78,7 +80,7 @@ else:
 	options = None
 	network_to_scan = input("Enter target in CIDR notation (192.168.10.0/24): ")
 	while not re.match(subnet_regex, network_to_scan):
-	network_to_scan = input("Enter target in CIDR notation (192.168.10.0/24): ")
+		network_to_scan = input("Enter target in CIDR notation (192.168.10.0/24): ")
 	current_vrf = input("Enter VRF for the IP (leave blank if not needed): ")
 	if current_vrf == "":
 		vrf = ""
@@ -101,8 +103,7 @@ else:
 ##########################################################################################################
 def GetMacFromIP(current_ip, core_router, username, password, secret, current_vrf):
 	# connect to core device
-	core_router_conn = ConnectHandler(device_type='cisco_ios', host=core_router, username=username, password=password,
-									  secret=secret)
+	core_router_conn = ConnectHandler(device_type='cisco_ios', host=core_router, username=username, password=password, secret=secret)
 	# obtain hostname of core device
 	core_router_hostname = core_router_conn.find_prompt()
 	core_router_conn.enable()
@@ -142,8 +143,9 @@ def GetPortByMac(next_switch_conn, mac):
 	# if a mac is found, change from regex result to string
 	if mac_port:
 		mac_port = mac_port.group()
-
-	return mac_port
+		return mac_port
+	else:
+		return False
 
 
 ##########################################################################################################
@@ -155,9 +157,6 @@ def GetPortByMac(next_switch_conn, mac):
 def GetCDPNeighbor(next_switch_conn, mac_port):
 	# Check for access point because we usually can't SSH into those
 	show_cdp_nei = next_switch_conn.send_command("show cdp nei " + mac_port + " det", delay_factor=.1)
-	cdp_air_check = re.search(air_regex, show_cdp_nei)
-	if cdp_air_check:
-		return False
 
 	# Get the CDP neighbor IP
 	show_cdp_nei = next_switch_conn.send_command("show cdp nei " + mac_port + " det | inc IP", delay_factor=.1)
@@ -234,8 +233,7 @@ def GetMacCount(next_switch_conn, mac_port):
 ##########################################################################################################
 def TraceMac(mac, device_ip, dns_name, switch_ip, username, password, secret):
 	# connect to switch
-	next_switch_conn = ConnectHandler(device_type='cisco_ios', host=switch_ip, username=username, password=password,
-									  secret=secret)
+	next_switch_conn = ConnectHandler(device_type='cisco_ios', host=switch_ip, username=username, password=password, secret=secret)
 	next_switch_hostname = next_switch_conn.find_prompt().rstrip("#>")
 	next_switch_conn.enable()
 
@@ -245,13 +243,26 @@ def TraceMac(mac, device_ip, dns_name, switch_ip, username, password, secret):
 	if not port:
 		next_switch_conn.disconnect()
 		print("Port Unknown")
-		line = "{},{},{},Unknown\n".format(device_ip, mac, next_switch_hostname)
+		line = "{},{},{},{},Unknown\n".format(device_ip, dns_name, mac, next_switch_hostname)
 		return line
+
+	description = GetInterfaceDescription(next_switch_conn, port)
+	interface_type, vlans = GetInterfaceMode(next_switch_conn, port)
+	mac_count = GetMacCount(next_switch_conn, port)
 
 	# See if port is another Cisco device, if it is, start tracing on that switch
 	cdp_nei_ip = GetCDPNeighbor(next_switch_conn, port)
 	if cdp_nei_ip:
-		line = TraceMac(mac, device_ip, dns_name, cdp_nei_ip, username, password, secret)
+		sys.stderr = DevNull()
+		try:
+			line = TraceMac(mac, device_ip, dns_name, cdp_nei_ip, username, password, secret)
+		except:
+			next_switch_conn.disconnect()
+			print("error:\n")
+			print("Traced to CDP neighbor " + cdp_nei_ip + ", but could not SSH into it.\n")
+			line = csv_line_template.format(device_ip, dns_name, mac, next_switch_hostname, port, description,
+											interface_type, vlans, str(mac_count))
+			return line
 
 	# Build line to print
 	else:
