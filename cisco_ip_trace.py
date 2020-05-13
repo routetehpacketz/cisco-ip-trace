@@ -51,7 +51,7 @@ if len(sys.argv) > 1:
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-n', action='store', dest='network_to_scan',
-                        help='The network to scan in CIDR format example 192.168.10.0/24', required=True)
+                        help='The network to scan in CIDR format example 192.168.10.0/24', required=False)
 
     parser.add_argument('-FA', action='store_true', dest='full_arp',
                         help='Enables full ARP table scan', required=False)
