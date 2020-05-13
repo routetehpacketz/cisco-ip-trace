@@ -9,11 +9,11 @@ import getpass
 from socket import gethostbyaddr
 
 
-# error suppressing
+#error suppressing
+
 class DevNull:
     def write(self, msg):
         pass
-
 
 ##########################################################################################################
 #
@@ -47,6 +47,7 @@ vlan_id_regex = re.compile(r'Vlan\d+')
 
 # determine if arguments were passed to the script and parse if so
 if len(sys.argv) > 1:
+
 
     parser = argparse.ArgumentParser()
 
@@ -106,11 +107,13 @@ else:
     filename = input("Enter a filename to save output as CSV (leave blank for no file output): ")
 
 
+
 ##########################################################################################################
 #
 #  get_arp_table - Gets IPs from core router's ARP table
 #
 ##########################################################################################################
+
 def get_arp_table(core_switch, username, password, secret, current_vrf):
     core_switch_conn = ConnectHandler(device_type='cisco_ios', host=core_switch, username=username, password=password,
                                       secret=secret)
@@ -121,11 +124,13 @@ def get_arp_table(core_switch, username, password, secret, current_vrf):
     return arp_table
 
 
+
 ##########################################################################################################
 #
 #  get_mac_from_ip - finds the MAC address of an IP address via ARP
 #
 ##########################################################################################################
+
 def get_mac_from_ip(current_ip, core_switch, username, password, secret, current_vrf):
     # connect to core device
     core_switch_conn = ConnectHandler(device_type='cisco_ios', host=core_switch, username=username, password=password,
@@ -143,6 +148,7 @@ def get_mac_from_ip(current_ip, core_switch, username, password, secret, current
         return match_mac.group()
     else:
         return False
+
 
 
 ##########################################################################################################
@@ -173,11 +179,13 @@ def get_port_by_mac(next_switch_conn, mac):
         return False
 
 
+
 ##########################################################################################################
 #
 #  get_cdp_neighbor - Checks for CDP Neighbor on switch port
 #
 ##########################################################################################################
+
 
 def get_cdp_neighbor(next_switch_conn, mac_port):
     # Get the CDP neighbor IP
@@ -253,6 +261,7 @@ def get_mac_count(next_switch_conn, mac_port):
 #  trace_mac - Trace the MAC address through switches
 #
 ##########################################################################################################
+
 def trace_mac(mac, device_ip, dns_name, switch_ip, username, password, secret):
     # connect to switch
     next_switch_conn = ConnectHandler(device_type='cisco_ios', host=switch_ip, username=username, password=password,
@@ -303,6 +312,7 @@ def trace_mac(mac, device_ip, dns_name, switch_ip, username, password, secret):
     next_switch_conn.disconnect()
 
     return line
+
 
 
 ##########################################################################################################
