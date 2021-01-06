@@ -258,7 +258,12 @@ def check_core(current_ip, core_router, username, password, secret, current_vrf)
     show_ip_arp = core_conn.send_command("show ip arp " + current_ip + "\n", delay_factor=.1)
     match_mac = re.search(mac_regex, show_ip_arp)
     # if MAC is found, obtain learned port and check for CDP neighbor
-    if match_mac:
+    if not match_mac:
+        match_mac = None
+        port = None
+        cdp_nei_ip = None
+        return match_mac, port, cdp_nei_ip
+    else:
         match_mac = match_mac.group()
         port = re.search(int_regex, show_ip_arp)
         if not port:
@@ -272,8 +277,6 @@ def check_core(current_ip, core_router, username, password, secret, current_vrf)
         else:
             cdp_nei_ip = None
         return match_mac, port, cdp_nei_ip
-    else:
-        return False
 
 
 ##########################################################################################################
@@ -282,40 +285,41 @@ def check_core(current_ip, core_router, username, password, secret, current_vrf)
 #
 ##########################################################################################################
 def trace_ip_address(ip):
-    target_ip = str(ip)
     # check for reverse DNS entry
     dns_name = None
     try:
-        dns_name = gethostbyaddr(target_ip)[0]
+        dns_name = gethostbyaddr(ip)[0]
     except:
         pass
     if not dns_name:
         dns_name = "N/A"
-    print("\nTracing " + target_ip + "...", end="")
+    print("\nTracing " + ip + "...", end="")
     # obtain MAC, port, and check CDP for neighbor on core
     # if using cmd line arguments
     if options:
-        mac, port, cdp_nei_ip = check_core(target_ip, options.core_switch, options.username, password, secret, options.vrf)
+        mac, port, cdp_nei_ip = check_core(ip, options.core_switch, options.username, password, secret, options.vrf)
     # if using interactive prompts
     else:
-        mac, port, cdp_nei_ip = check_core(target_ip, core_switch, username, password, secret, vrf)
+        mac, port, cdp_nei_ip = check_core(ip, core_switch, username, password, secret, vrf)
     # move onto the next target if no ARP entry for current target
     if not mac:
         print("MAC not found in ARP")
-        # line = "{},Not Found\n".format(target_ip)
-        line = csv_line_template.format(target_ip, dns_name, "No ARP entry")
+        # line = "{},Not Found\n".format(ip)
+        line = csv_line_template.format(ip, dns_name,'','','','','','','')
+        return line
     elif cdp_nei_ip:
         # if using cmd line arguments
         if options:
-            line = trace_mac(mac, target_ip, dns_name, cdp_nei_ip, options.username, password, secret)
+            line = trace_mac(mac, ip, dns_name, cdp_nei_ip, options.username, password, secret)
+            return line
         # if using interactive prompts
         else:
-            line = trace_mac(mac, target_ip, dns_name, cdp_nei_ip, username, password, secret)
+            line = trace_mac(mac, ip, dns_name, cdp_nei_ip, username, password, secret)
+            return line
     else:
         print("MAC found on core, but no CDP neighbor detected.\n")
-        line = csv_line_template.format(target_ip, dns_name, "No ARP entry",'',port)
-
-    return line
+        line = csv_line_template.format(ip, dns_name, mac,'',port,'','','','')
+        return line
 
 
 ##########################################################################################################
@@ -333,7 +337,7 @@ def main():
             csv_file = open(options.filename, "w")
             csv_file.write(csv_header)
             for ip in ipaddress.IPv4Network(options.network_to_scan):
-                line = trace_ip_address(ip)
+                line = trace_ip_address(str(ip))
                 print(line)
                 csv_file.write(line)
     # if outputting to csv with prompts
@@ -342,13 +346,13 @@ def main():
         csv_file.write(csv_header)
         # Loop over each IP in the network and trace
         for ip in ipaddress.IPv4Network(network_to_scan):
-            line = trace_ip_address(ip)
+            line = trace_ip_address(str(ip))
             print(csv_header + line)
             csv_file.write(line)
     # just print lines if not outputting to csv
     else:
         for ip in ipaddress.IPv4Network(network_to_scan):
-            line = trace_ip_address(ip)
+            line = trace_ip_address(str(ip))
             print(csv_header + line)
 
 
