@@ -116,26 +116,29 @@ def get_cdp_neighbor(next_switch_conn, mac_port):
 #
 ##########################################################################################################
 def get_port_by_mac(ssh_conn, mac):
-    # find the port number of the target MAC address
+    # find the port of the target MAC address
+    # first search for regular interface types (Fa, Gi, etc.)
     show_mac_table = ssh_conn.send_command("show mac add add {} | inc {}".format(mac, mac), delay_factor=.1)
     mac_port = re.search(int_regexes[0], show_mac_table)
+    # If regular interface type found, return it
     if mac_port:
         return mac_port.group()
     else:
+    # If no regular interface type is found, search for etherchannels
         mac_port = re.search(int_regexes[1], show_mac_table)
     if mac_port:
         mac_port = mac_port.group()
         etherchan_output = ssh_conn.send_command("show etherchan summ | inc {}".format(mac_port), delay_factor=.1)
-        mac_port = re.search(int_regexes[0], etherchan_output)
-    # If Cisco IOS port-channel, return first discovered port in port-channel
-    if mac_port:
-        return mac_port.group()
+        ethc_mac_port = re.search(int_regexes[0], etherchan_output)
+        # If Cisco IOS etherchannel is found, return first discovered port in port-channel
+        if ethc_mac_port:
+            return ethc_mac_port.group()
         # Else run Cisco NXOS port-channel show command
-    else:
-        etherchan_output = ssh_conn.send_command("show portc summ | inc {}".format(mac_port), delay_factor=.1)
-        mac_port = re.search(int_regexes[0], etherchan_output)
-    if mac_port:
-        return mac_port.group()
+        else:
+            portchan_output = ssh_conn.send_command("show port-chan summ | inc {}".format(mac_port), delay_factor=.1)
+            portchan_mac_port = re.search(int_regexes[0], portchan_output)
+        if portchan_mac_port:
+            return portchan_mac_port.group()
     # if a mac is found, change from regex result to string
     else:
         return False
