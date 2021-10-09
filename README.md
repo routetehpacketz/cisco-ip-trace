@@ -47,7 +47,7 @@ Device IP,MAC Address,Switch,Port,Port Description,Interface Type,VLANs on port,
 
 -Python3.x
 
--Python modules 'netmiko', 'ipcalc', and 'argparse'
+-Python modules 'netmiko' and 'argparse'
 
 -SSH access to all Cisco devices from the computer running the script
 
@@ -60,8 +60,6 @@ Device IP,MAC Address,Switch,Port,Port Description,Interface Type,VLANs on port,
 ### Known issues/to-do
 
 -Add prompt for new creds if supplied creds fail on a discovered neighbor
-
--Add support for Cisco Nexus switches with port-channels (just need to work out the command syntax difference)
 
 -LLDP support
 
