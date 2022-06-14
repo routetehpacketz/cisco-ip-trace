@@ -29,7 +29,7 @@ Enter target in CIDR notation (192.168.10.0/24): 192.168.10.0/24
 Enter VRF for the IP. Press 'Enter' if you're not using VRFs: myvrf
 Enter the IP address of the core router/switch that can ARP for the IP address to trace: 192.168.10.1
 Username: admin
-Password: *****
+Password: ******
 Enable password (leave blank if not needed):
 Enter a filename to save output as CSV (leave blank for no file output): myfile.csv
 ```
