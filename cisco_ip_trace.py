@@ -173,7 +173,7 @@ def get_interface_mode(next_switch_conn, mac_port):
     # check whether the interface is a trunk
     show_interface_trunk = next_switch_conn.send_command("show interface trunk | inc {}".format(mac_port),
                                                          delay_factor=.1)
-    trunk_regex = re.compile(r'%s\s*(\S.*)' % mac_port, re.MULTILINE)
+    trunk_regex = re.compile(r'%s\s+(\S.*)' % mac_port, re.MULTILINE)
     interface_trunk_match = re.findall(trunk_regex, show_interface_trunk)
     # device is on a trunk port
     if interface_trunk_match:
